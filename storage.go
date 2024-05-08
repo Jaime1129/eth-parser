@@ -1,10 +1,13 @@
 package main
 
-import "sync"
+import (
+	"sync"
+	"sync/atomic"
+)
 
 type Storage interface {
 	AddSubcriber(address string)
-	GetSubsriberList() []string
+	GetSubsriberAddresses() map[string]struct{}
 	GetTrxsByAddress(address string) []Transaction
 	SaveTrxs(trxs map[string][]Transaction)
 }
@@ -12,12 +15,21 @@ type Storage interface {
 type storage struct {
 	lock           sync.RWMutex             // protect read or write of subscribers
 	subscribedTrxs map[string][]Transaction // address => incoming or outgoing trx list
+	blockNum       atomic.Int64
 }
 
 func NewStorage() Storage {
 	return &storage{
 		subscribedTrxs: make(map[string][]Transaction),
 	}
+}
+
+func (s *storage) GetLatestBlock() int64 {
+	return s.blockNum.Load()
+}
+
+func (s *storage) SetLatestBlock(blockNum int64) {
+	s.blockNum.Store(blockNum)
 }
 
 func (s *storage) AddSubcriber(address string) {
@@ -29,13 +41,13 @@ func (s *storage) AddSubcriber(address string) {
 	}
 }
 
-func (s *storage) GetSubsriberList() []string {
+func (s *storage) GetSubsriberAddresses() map[string]struct{} {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
 
-	res := make([]string, len(s.subscribedTrxs))
+	res := make(map[string]struct{}, len(s.subscribedTrxs))
 	for k, _ := range s.subscribedTrxs {
-		res = append(res, k)
+		res[k] = struct{}{}
 	}
 
 	return res
