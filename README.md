@@ -1,3 +1,7 @@
+### Run
+
+`go run .`
+
 ### Test
 
 `curl localhost:8080/current-block`
