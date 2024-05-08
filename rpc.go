@@ -2,6 +2,9 @@ package main
 
 import "encoding/json"
 
+type RPCClient struct {
+}
+
 // Transaction represents an Ethereum transaction
 type Transaction struct {
 	Hash string `json:"hash"`
