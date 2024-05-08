@@ -54,14 +54,15 @@ func (c *rpcClient) trackBlocks(ctx context.Context) {
 	for {
 		select {
 		case <-ticker.C:
-			c.parseBlocks(ctx)
+			c.parseBlocks()
 		case <-ctx.Done():
-
+			fmt.Println("stop tracking blocks")
+			return
 		}
 	}
 }
 
-func (c *rpcClient) parseBlocks(ctx context.Context) error {
+func (c *rpcClient) parseBlocks() error {
 	nodeURL := "https://cloudflare-eth.com" // Change this URL to the actual RPC endpoint
 
 	// Create a new RPC request to get the latest block with full transaction details
@@ -103,6 +104,7 @@ func (c *rpcClient) parseBlocks(ctx context.Context) error {
 		return err
 	}
 
+	// fetch subsribers
 	targetAddress := c.storage.GetSubsriberAddresses()
 	if len(c.storage.GetSubsriberAddresses()) == 0 {
 		fmt.Println("empty subscriber addresses")
