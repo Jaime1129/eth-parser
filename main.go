@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -14,7 +13,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	storage := NewStorage()
-	rpcClient := &rpcClient{storage}
+	rpcClient := &rpcClient{storage: storage}
 
 	wg := sync.WaitGroup{}
 
@@ -26,10 +25,7 @@ func main() {
 		rpcClient.trackBlocks(ctx)
 	}(ctx)
 
-	srv := &http.Server{
-		Addr: ":8080",
-	}
-
+	srv := setupServer(storage)
 	wg.Add(1)
 	go func(ctx context.Context) {
 		defer wg.Done()

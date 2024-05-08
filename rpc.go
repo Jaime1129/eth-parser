@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -25,6 +27,7 @@ type Transaction struct {
 // Block represents an Ethereum block
 type Block struct {
 	Transactions []Transaction `json:"transactions"`
+	Number       string        `json:"number"`
 }
 
 // RPCRequest represents a JSON-RPC request
@@ -122,6 +125,23 @@ func (c *rpcClient) parseBlocks() error {
 		}
 	}
 
+	num, err := HexToInt(block.Number)
+	if err != nil {
+		return err
+	}
+
+	c.storage.SetLatestBlock(num)
 	c.storage.SaveTrxs(trxMap)
 	return nil
+}
+
+func HexToInt(hexStr string) (int64, error) {
+	hexStr = strings.TrimPrefix(hexStr, "0x")
+	// base 16 for hexadecimal, 64 bits
+	decimalValue, err := strconv.ParseInt(hexStr, 16, 64)
+	if err != nil {
+		fmt.Println("Error converting hex to decimal:", err)
+		return 0, err
+	}
+	return decimalValue, nil
 }

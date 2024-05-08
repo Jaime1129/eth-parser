@@ -6,6 +6,8 @@ import (
 )
 
 type Storage interface {
+	GetLatestBlock() int64
+	SetLatestBlock(blockNum int64)
 	AddSubcriber(address string)
 	GetSubsriberAddresses() map[string]struct{}
 	GetTrxsByAddress(address string) []Transaction
