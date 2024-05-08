@@ -47,5 +47,6 @@ func main() {
 	}
 
 	cancel()
+
 	wg.Wait()
 }

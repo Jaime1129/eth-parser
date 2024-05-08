@@ -52,12 +52,15 @@ type RPCError struct {
 }
 
 func (c *rpcClient) trackBlocks(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 
 	for {
 		select {
 		case <-ticker.C:
-			c.parseBlocks()
+			err := c.parseBlocks()
+			if err != nil {
+				fmt.Println("parse block err: " + err.Error())
+			}
 		case <-ctx.Done():
 			fmt.Println("stop tracking blocks")
 			return
@@ -66,13 +69,13 @@ func (c *rpcClient) trackBlocks(ctx context.Context) {
 }
 
 func (c *rpcClient) parseBlocks() error {
-	nodeURL := "https://cloudflare-eth.com" // Change this URL to the actual RPC endpoint
+	nodeURL := "https://eth.llamarpc.com" // Change this URL to the actual RPC endpoint
 
 	// Create a new RPC request to get the latest block with full transaction details
 	reqBody, err := json.Marshal(RPCRequest{
 		JSONRPC: "2.0",
 		Method:  "eth_getBlockByNumber",
-		Params:  []interface{}{"latest", true},
+		Params:  []interface{}{"finalized", true},
 		ID:      1,
 	})
 	if err != nil {
@@ -107,30 +110,37 @@ func (c *rpcClient) parseBlocks() error {
 		return err
 	}
 
+	bjson, _ := json.Marshal(block)
+	fmt.Println(string(bjson))
+
+	num, err := HexToInt(block.Number)
+	if err != nil {
+		return err
+	}
+	c.storage.SetLatestBlock(num)
+	fmt.Printf("parsed block %d\n", num)
+
 	// fetch subsribers
 	targetAddress := c.storage.GetSubsriberAddresses()
 	if len(c.storage.GetSubsriberAddresses()) == 0 {
 		fmt.Println("empty subscriber addresses")
 		return nil
 	}
+	fmt.Printf("address map: %v\n", targetAddress)
 
 	// Filter and save transactions related to subscribed addresses
 	trxMap := make(map[string][]Transaction)
 	for _, tx := range block.Transactions {
 		if _, ok := targetAddress[tx.From]; ok {
 			trxMap[tx.From] = append(trxMap[tx.From], tx)
+			fmt.Printf("save trxs: address=%s, trxHash=%s\n", tx.From, tx.Hash)
 		}
 		if _, ok := targetAddress[tx.To]; ok {
+			fmt.Printf("save trxs: address=%s, trxHash=%s\n", tx.To, tx.Hash)
 			trxMap[tx.To] = append(trxMap[tx.To], tx)
 		}
 	}
 
-	num, err := HexToInt(block.Number)
-	if err != nil {
-		return err
-	}
-
-	c.storage.SetLatestBlock(num)
 	c.storage.SaveTrxs(trxMap)
 	return nil
 }

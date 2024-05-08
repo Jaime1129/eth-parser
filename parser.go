@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -82,7 +81,7 @@ func setupServer(storage Storage) *http.Server {
 			http.Error(w, "Marshal err", http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprint(w, resp)
+		fmt.Fprint(w, string(resp))
 	})
 
 	sm.HandleFunc("/subscribe", func(w http.ResponseWriter, r *http.Request) {
@@ -107,12 +106,12 @@ func setupServer(storage Storage) *http.Server {
 		}
 
 		res := parser.Subscribe(data["address"])
-		resp, err := json.Marshal(map[string]interface{}{"success": res})
+		resp, err := json.Marshal(map[string]bool{"success": res})
 		if err != nil {
 			http.Error(w, "Marshal err", http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprint(w, resp)
+		fmt.Fprint(w, string(resp))
 	})
 	sm.HandleFunc("/get-transactions", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
@@ -121,12 +120,12 @@ func setupServer(storage Storage) *http.Server {
 		}
 		addr := r.URL.Query().Get("address")
 		trxs := parser.GetTransactions(addr)
-		resp, err := json.Marshal(map[string]interface{}{"trxs": trxs})
+		resp, err := json.Marshal(map[string][]Transaction{"trxs": trxs})
 		if err != nil {
 			http.Error(w, "Marshal err", http.StatusInternalServerError)
 			return
 		}
-		fmt.Fprint(w, resp)
+		fmt.Fprint(w, string(resp))
 	})
 	return &http.Server{
 		Addr:    ":8080",
